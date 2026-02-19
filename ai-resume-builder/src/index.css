@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Source Sans 3", sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --color-accent: #8b0000;
+  --color-muted: rgba(26, 26, 26, 0.6);
+}
+
+@layer base {
+  body {
+    @apply antialiased text-neutral-900 bg-neutral-50 font-sans;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-accent text-white rounded-lg font-semibold hover:bg-red-900 transition-all duration-200 shadow-sm active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-white text-neutral-900 border border-neutral-200 rounded-lg font-semibold hover:bg-neutral-50 transition-all duration-200 shadow-sm active:scale-[0.98];
+  }
+
+  .section-card {
+    @apply bg-white border border-neutral-200 rounded-xl p-6 shadow-sm;
+  }
+
+  .input-label {
+    @apply block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/10 focus:border-red-500 transition-all;
+  }
+}
+
+/* Print Styling */
+@media print {
+
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Force white background and black text on everything */
+  * {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Remove all colored accents */
+  .text-accent,
+  .text-accent *,
+  .border-accent,
+  .bg-accent {
+    color: black !important;
+    border-color: black !important;
+    background-color: transparent !important;
+  }
+
+  /* Reset links to be just black text */
+  a {
+    text-decoration: none !important;
+    color: black !important;
+  }
+
+  /* Paper setup */
+  @page {
+    size: A4;
+    margin: 15mm 20mm;
+  }
+
+  .max-w-\[210mm\] {
+    width: 210mm !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Section Spacing & Layout */
+  .space-y-8>*+* {
+    margin-top: 2rem !important;
+  }
+
+  /* Page Break Logic */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  h2 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Avoid cutting off sections */
+  section,
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Text Overflow Protection */
+  p,
+  span,
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    hyphens: auto;
+  }
+}

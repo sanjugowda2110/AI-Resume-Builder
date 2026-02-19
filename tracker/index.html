@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Builder — Build Track</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <span class="brand-name">AI Resume Builder</span>
+            </div>
+            <div class="top-bar-center">
+                <span id="step-indicator">Project 3 — Step X of 8</span>
+            </div>
+            <div class="top-bar-right">
+                <span id="project-status" class="status-badge">NOT STARTED</span>
+            </div>
+        </header>
+
+        <!-- Context Header -->
+        <div class="context-header">
+            <h1 id="page-title">Loading...</h1>
+            <p id="page-description">Premium Build Environment</p>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="main-container">
+            <!-- Workspace (70%) -->
+            <section class="workspace">
+                <div id="workspace-content">
+                    <!-- Dynamic content injected here -->
+                </div>
+            </section>
+
+            <!-- Build Panel (30%) -->
+            <aside class="build-panel">
+                <div class="panel-section">
+                    <label for="lovable-prompt">Copy This Into Lovable</label>
+                    <textarea id="lovable-prompt" readonly placeholder="Click 'Generate PROMPT' in workspace to see the artifact..."></textarea>
+                    <button id="copy-prompt-btn" class="primary-btn">Copy Prompt</button>
+                    <a href="https://lovable.dev" target="_blank" class="secondary-btn flex-center">
+                        Build in Lovable
+                    </a>
+                </div>
+
+                <div class="panel-section">
+                    <h3>Submit Status</h3>
+                    <div class="status-buttons">
+                        <button id="status-worked" class="status-btn worked">It Worked</button>
+                        <button id="status-error" class="status-btn error">Error</button>
+                        <button id="status-screenshot" class="status-btn screenshot">Add Screenshot</button>
+                    </div>
+                    <div id="upload-section" class="upload-section">
+                        <label class="file-upload">
+                            <input type="file" id="artifact-upload" hidden>
+                            <span id="upload-text">Upload Artifact (Screenshot)</span>
+                        </label>
+                        <p id="artifact-status" class="hint">No artifact uploaded yet.</p>
+                    </div>
+                </div>
+
+                <div class="panel-nav">
+                    <button id="next-btn" class="nav-btn next" disabled>Next Step</button>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Proof Footer -->
+        <footer class="proof-footer">
+            <div class="footer-left">
+                <span>Phase 1: Concept & Design</span>
+            </div>
+            <div class="footer-center">
+                <div class="mini-steps">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="/rb/proof" id="proof-link">Review Final Proof</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
