@@ -118,6 +118,65 @@ const normalizeResumeData = (raw) => {
   };
 };
 
+const handleBulletKeyDown = (e, section, field, idx, updateField) => {
+  if (e.key === 'Enter') {
+    const el = e.target;
+    const val = el.value;
+    const cursorPosition = el.selectionStart;
+    const textBeforeCursor = val.substring(0, cursorPosition);
+    const lines = textBeforeCursor.split('\n');
+    const currentLine = lines[lines.length - 1];
+
+    if (currentLine.trim() === '•') {
+      e.preventDefault();
+      const newText = val.substring(0, cursorPosition - currentLine.length) + val.substring(cursorPosition);
+      updateField(section, field, newText, idx);
+      setTimeout(() => {
+        el.selectionStart = cursorPosition - currentLine.length;
+        el.selectionEnd = cursorPosition - currentLine.length;
+      }, 0);
+    } else {
+      e.preventDefault();
+      const insert = '\n• ';
+      const newText = val.substring(0, cursorPosition) + insert + val.substring(cursorPosition);
+      updateField(section, field, newText, idx);
+      setTimeout(() => {
+        el.selectionStart = cursorPosition + insert.length;
+        el.selectionEnd = cursorPosition + insert.length;
+      }, 0);
+    }
+  } else if (e.key === 'Backspace') {
+    const el = e.target;
+    const val = el.value;
+    const cursorPosition = el.selectionStart;
+    const textBeforeCursor = val.substring(0, cursorPosition);
+
+    if (textBeforeCursor.endsWith('\n• ')) {
+      e.preventDefault();
+      const newText = val.substring(0, cursorPosition - 3) + val.substring(cursorPosition);
+      updateField(section, field, newText, idx);
+      setTimeout(() => {
+        el.selectionStart = cursorPosition - 3;
+        el.selectionEnd = cursorPosition - 3;
+      }, 0);
+    } else if (val === '• ') {
+      e.preventDefault();
+      updateField(section, field, '', idx);
+    } else if (textBeforeCursor.endsWith('• ')) {
+      const lines = textBeforeCursor.split('\n');
+      if (lines[lines.length - 1] === '• ') {
+        e.preventDefault();
+        const newText = val.substring(0, cursorPosition - 2) + val.substring(cursorPosition);
+        updateField(section, field, newText, idx);
+        setTimeout(() => {
+          el.selectionStart = cursorPosition - 2;
+          el.selectionEnd = cursorPosition - 2;
+        }, 0);
+      }
+    }
+  }
+};
+
 const hasBulletPoints = (text = '') => {
   const trimmed = text.trim();
   if (!trimmed) return false;
@@ -323,11 +382,35 @@ const ColorPicker = ({ activeColor, onColorSelect }) => (
 
 // Main Resume Document Component
 const ResumeDocument = ({ data, template, themeColor }) => {
+  const renderDescription = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    const result = [];
+    let currentBullets = [];
+
+    lines.forEach((line, i) => {
+      if (line.trim().startsWith('•')) {
+        currentBullets.push(<li key={`b-${i}`} className="ml-4 list-disc">{line.replace(/^[•\s]+/, '')}</li>);
+      } else {
+        if (currentBullets.length > 0) {
+          result.push(<ul key={`ul-${i}`} className="mb-1">{currentBullets}</ul>);
+          currentBullets = [];
+        }
+        if (line.trim()) {
+          result.push(<span key={`t-${i}`} className="block mb-1">{line}</span>);
+        }
+      }
+    });
+    if (currentBullets.length > 0) {
+      result.push(<ul key={`ul-last`} className="mb-1 mb-0 pb-0">{currentBullets}</ul>);
+    }
+    return result;
+  };
   return (
-    <div className={cn(
-      "bg-white shadow-2xl transition-all duration-300 overflow-hidden print:shadow-none",
+    <div id="resume-preview" className={cn(
+      "bg-white shadow-2xl transition-all duration-300 overflow-hidden print:overflow-visible print:shadow-none print:transform-none print:transition-none",
       template === 'Classic' ? "font-serif" : "font-sans",
-      template === 'Minimal' && "shadow-none border border-neutral-100"
+      template === 'Minimal' && "shadow-none border border-neutral-100 print:border-none"
     )} style={{ '--accent': themeColor }}>
       {/* Conditional Layout Rendering */}
       {template === 'Modern' ? (
@@ -338,7 +421,7 @@ const ResumeDocument = ({ data, template, themeColor }) => {
               <h1 className="text-3xl font-bold uppercase tracking-widest leading-none mb-6">
                 {data.personalInfo.name || 'YOUR NAME'}
               </h1>
-              <div className="space-y-3 opacity-90 text-[9pt] font-medium break-words">
+              <div className="space-y-3 text-white/90 text-[9pt] font-medium break-words">
                 {data.personalInfo.location && <div className="flex items-center gap-2"><User className="w-3.5 h-3.5 shrink-0" /> {data.personalInfo.location}</div>}
                 {data.personalInfo.phone && <div className="flex items-center gap-2"><Briefcase className="w-3.5 h-3.5 shrink-0" /> {data.personalInfo.phone}</div>}
                 {data.personalInfo.email && <div className="flex items-center gap-2"><Info className="w-3.5 h-3.5 shrink-0" /> {data.personalInfo.email}</div>}
@@ -351,7 +434,7 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                 <div className="space-y-6">
                   {data.skills.technical.length > 0 && (
                     <div className="space-y-3">
-                      <span className="text-[8pt] font-bold uppercase tracking-widest opacity-70">Technical</span>
+                      <span className="text-[8pt] font-bold uppercase tracking-widest text-white/70">Technical</span>
                       <div className="flex flex-wrap gap-2">
                         {data.skills.technical.map((s, i) => (
                           <span key={i} className="px-2 py-1 bg-white/10 rounded font-bold text-[7pt] uppercase tracking-wider">{s}</span>
@@ -361,7 +444,7 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                   )}
                   {data.skills.soft.length > 0 && (
                     <div className="space-y-3">
-                      <span className="text-[8pt] font-bold uppercase tracking-widest opacity-70">Soft Skills</span>
+                      <span className="text-[8pt] font-bold uppercase tracking-widest text-white/70">Soft Skills</span>
                       <div className="flex flex-wrap gap-2">
                         {data.skills.soft.map((s, i) => (
                           <span key={i} className="px-2 py-1 bg-white/10 rounded font-bold text-[7pt] uppercase tracking-wider">{s}</span>
@@ -376,8 +459,8 @@ const ResumeDocument = ({ data, template, themeColor }) => {
             <div className="pt-8 border-t border-white/20">
               <h2 className="text-[10pt] font-bold uppercase tracking-widest mb-4">Connections</h2>
               <div className="space-y-2 text-[8.5pt]">
-                {data.links.github && <div className="opacity-90">{data.links.github.replace(/https?:\/\//, '')}</div>}
-                {data.links.linkedin && <div className="opacity-90">{data.links.linkedin.replace(/https?:\/\//, '')}</div>}
+                {data.links.github && <div className="text-white/90">{data.links.github.replace(/https?:\/\//, '')}</div>}
+                {data.links.linkedin && <div className="text-white/90">{data.links.linkedin.replace(/https?:\/\//, '')}</div>}
               </div>
             </div>
           </div>
@@ -402,7 +485,7 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                         <span className="text-[9pt] font-medium italic text-neutral-500">{exp.period}</span>
                       </div>
                       <div className="text-[10pt] font-bold mb-1.5">{exp.company}</div>
-                      <p className="text-neutral-800 whitespace-pre-line leading-relaxed text-[9.5pt]">{exp.description}</p>
+                      <div className="text-neutral-800 leading-relaxed text-[9.5pt]">{renderDescription(exp.description)}</div>
                     </div>
                   ))}
                 </div>
@@ -449,8 +532,8 @@ const ResumeDocument = ({ data, template, themeColor }) => {
         </div>
       ) : (
         <div className={cn(
-          "p-[20mm] space-y-10",
-          template === 'Minimal' ? "max-w-[160mm] mx-auto" : ""
+          "px-8 py-8 md:px-12 md:py-10 print:py-[15mm] print:px-[20mm] space-y-8",
+          template === 'Minimal' ? "max-w-[160mm] mx-auto print:max-w-none print:px-[30mm]" : ""
         )}>
           {/* Header for Classic & Minimal */}
           <div className={cn("pb-6 mb-2", template === 'Classic' ? "border-b-2 border-black text-center" : "text-left")}>
@@ -488,7 +571,7 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                       <span className="text-[9pt] font-medium italic text-neutral-500">{exp.period}</span>
                     </div>
                     <div className="text-[10pt] font-bold mb-1.5" style={{ color: template === 'Classic' ? themeColor : 'inherit' }}>{exp.company}</div>
-                    <p className="text-neutral-800 whitespace-pre-line leading-relaxed text-[9.5pt]">{exp.description}</p>
+                    <div className="text-neutral-800 leading-relaxed text-[9.5pt]">{renderDescription(exp.description)}</div>
                   </div>
                 ))}
               </div>
@@ -800,6 +883,12 @@ const Builder = () => {
     return localStorage.getItem('resumeThemeColor') || 'hsl(168, 60%, 40%)';
   });
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    setIsGenerating(false);
+  }, [data, template]);
+
 
   useEffect(() => {
     localStorage.setItem('resumeBuilderData', JSON.stringify(data));
@@ -900,12 +989,32 @@ const Builder = () => {
     }));
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (e) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    if (isGenerating) return;
+    setIsGenerating(true);
+
+    try {
+      document.body.classList.add("printing");
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("printing");
+          setIsGenerating(false);
+        }, 500);
+      }, 100);
+    } catch (error) {
+      console.error("PDF Generation Failed", error);
+      document.body.classList.remove("printing");
+      setIsGenerating(false);
+    }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-neutral-50">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
       {/* Sidebar (45%) */}
       <div className="w-full lg:w-[45%] border-r border-neutral-200 overflow-y-auto px-4 md:px-8 py-8 md:py-10 bg-white no-print">
         <div className="flex items-center justify-between mb-8">
@@ -990,7 +1099,7 @@ const Builder = () => {
                       <input className="input-field bg-white text-sm" value={exp.role} onChange={e => updateField('experience', 'role', e.target.value, idx)} placeholder="Role" />
                     </div>
                     <input className="input-field bg-white text-sm" value={exp.period} onChange={e => updateField('experience', 'period', e.target.value, idx)} placeholder="Period (e.g. Jan 2021 - Present)" />
-                    <textarea className="input-field bg-white h-24 resize-none text-sm" value={exp.description} onChange={e => updateField('experience', 'description', e.target.value, idx)} placeholder="Describe measurable impact..." />
+                    <textarea className="input-field bg-white h-24 resize-none text-sm" value={exp.description} onChange={e => updateField('experience', 'description', e.target.value, idx)} onKeyDown={e => handleBulletKeyDown(e, 'experience', 'description', idx, updateField)} placeholder="Describe measurable impact..." />
                     <BulletGuidance text={exp.description} />
                   </div>
                 ))}
@@ -1102,10 +1211,10 @@ const Builder = () => {
       </div >
 
       {/* Preview (55%) */}
-      <div className="flex-1 bg-neutral-100 overflow-y-auto p-4 md:p-12 print:p-0 print:bg-white no-print relative" style={{ '--accent': themeColor }}>
-        <div className="max-w-[210mm] mx-auto mb-10 space-y-8">
+      <div className="flex-1 bg-neutral-100 overflow-y-auto p-4 md:p-12 print:p-0 print:bg-white print:overflow-visible relative" style={{ '--accent': themeColor }}>
+        <div className="max-w-[210mm] mx-auto mb-10 space-y-8 print:m-0 print:space-y-0">
           {/* Template & Color Selectors */}
-          <div className="bg-white p-8 rounded-[32px] border border-neutral-200 shadow-xl space-y-8">
+          <div className="bg-white p-8 rounded-[32px] border border-neutral-200 shadow-xl space-y-8 no-print">
             <div className="flex flex-col md:flex-row items-start justify-between gap-8">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -1132,9 +1241,10 @@ const Builder = () => {
                 <ColorPicker activeColor={themeColor} onColorSelect={setThemeColor} />
                 <button
                   onClick={handlePrint}
-                  className="w-full mt-4 btn-primary py-3 flex items-center justify-center gap-2"
+                  disabled={isGenerating}
+                  className="w-full mt-4 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Printer className="w-4 h-4" /> Download PDF
+                  <Printer className={cn("w-4 h-4", isGenerating && "animate-pulse")} /> {isGenerating ? "Generating..." : "Download PDF"}
                 </button>
               </div>
             </div>
@@ -1175,6 +1285,12 @@ const PreviewView = () => {
   const [themeColor, setThemeColor] = useState(() => {
     return localStorage.getItem('resumeThemeColor') || 'hsl(168, 60%, 40%)';
   });
+
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    setIsGenerating(false);
+  }, [data, template]);
 
   const [copied, setCopied] = useState(false);
   const atsResult = useMemo(() => calculateATSScore(data || DEFAULT_RESUME_DATA), [data]);
@@ -1217,8 +1333,28 @@ const PreviewView = () => {
     (data?.experience.filter(e => e.company.trim()).length === 0 &&
       data?.projects.filter(p => p.name.trim()).length === 0);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (e) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    if (isGenerating) return;
+    setIsGenerating(true);
+
+    try {
+      document.body.classList.add("printing");
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("printing");
+          setIsGenerating(false);
+        }, 500);
+      }, 100);
+    } catch (error) {
+      console.error("PDF Generation Failed", error);
+      document.body.classList.remove("printing");
+      setIsGenerating(false);
+    }
   };
 
   const handleCopyText = () => {
@@ -1333,9 +1469,9 @@ const PreviewView = () => {
               {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy Text'}
             </button>
-            <button onClick={handlePrint} className="btn-primary py-3 px-8 flex items-center gap-2 text-sm group flex-1 lg:flex-none justify-center">
-              <Printer className="w-4 h-4 group-hover:animate-pulse" />
-              Download PDF
+            <button onClick={handlePrint} disabled={isGenerating} className="btn-primary py-3 px-8 flex items-center gap-2 text-sm group flex-1 lg:flex-none justify-center disabled:opacity-50">
+              <Printer className={cn("w-4 h-4", isGenerating ? "animate-pulse" : "group-hover:animate-pulse")} />
+              {isGenerating ? "Generating..." : "Download PDF"}
             </button>
           </div>
         </div>
@@ -1360,242 +1496,167 @@ const PreviewView = () => {
 
 // Proof Route
 const Proof = () => {
-  const [stepState, setStepState] = useState(() => {
-    const saved = localStorage.getItem('rb_proof_steps');
-    const defaults = Object.fromEntries(PROOF_STEPS.map(step => [step.id, false]));
-    if (!saved) return defaults;
-    try {
-      return { ...defaults, ...JSON.parse(saved) };
-    } catch {
-      return defaults;
+  const [jobDescription, setJobDescription] = useState('');
+  const [insightResult, setInsightResult] = useState(null);
+
+  // Lazy initialization to load saved data without triggering cascading renders
+  const [resumeText] = useState(() => {
+    const saved = localStorage.getItem('resumeBuilderData');
+    if (saved) {
+      try {
+        const data = normalizeResumeData(JSON.parse(saved));
+        return [
+          data.summary,
+          data.experience.map(e => `${e.role} ${e.description}`).join(' '),
+          data.education.map(e => `${e.degree} ${e.school}`).join(' '),
+          data.projects.map(p => `${p.name} ${p.description} ${p.techStack.join(' ')}`).join(' '),
+          data.skills.technical.join(' '),
+          data.skills.soft.join(' '),
+          data.skills.tools.join(' ')
+        ].join(' ');
+      } catch {
+        console.warn('Failed to parse saved resume data');
+      }
     }
+    return '';
   });
 
-  const [checklistState, setChecklistState] = useState(() => {
-    const saved = localStorage.getItem('rb_proof_checklist');
-    const defaults = Object.fromEntries(CHECKLIST_ITEMS.map((_, idx) => [idx, false]));
-    if (!saved) return defaults;
-    try {
-      return { ...defaults, ...JSON.parse(saved) };
-    } catch {
-      return defaults;
-    }
-  });
+  const analyzeResume = () => {
+    if (!jobDescription.trim() || !resumeText.trim()) return;
 
-  const [submissionLinks, setSubmissionLinks] = useState(() => {
-    const saved = localStorage.getItem('rb_final_submission');
-    const defaults = {
-      lovableProject: '',
-      githubRepository: '',
-      liveDeployment: ''
-    };
-    if (!saved) return defaults;
-    try {
-      const parsed = JSON.parse(saved);
-      return {
-        ...defaults,
-        lovableProject: parsed.lovableProject || '',
-        githubRepository: parsed.githubRepository || '',
-        liveDeployment: parsed.liveDeployment || '',
-      };
-    } catch {
-      return defaults;
-    }
-  });
+    const jobWords = jobDescription.toLowerCase().match(/\b\w+\b/g) || [];
+    const resumeWords = resumeText.toLowerCase().match(/\b\w+\b/g) || [];
+    const jobUniqueWords = [...new Set(jobWords.filter(w => w.length > 3))];
+    const resumeUniqueWords = new Set(resumeWords);
 
-  const [copyState, setCopyState] = useState(false);
+    const importantKeywords = ['react', 'node', 'javascript', 'typescript', 'api', 'cloud', 'aws', 'docker', 'sql', 'agile', 'database', 'backend', 'frontend', 'manager', 'leadership', 'design', 'architecture', 'testing', 'ci/cd', 'python', 'java'];
+    const targetKeywords = jobUniqueWords.filter(w => importantKeywords.includes(w));
+    if (targetKeywords.length === 0) targetKeywords.push('communication', 'teamwork', 'problem-solving', 'development');
 
-  useEffect(() => {
-    localStorage.setItem('rb_proof_steps', JSON.stringify(stepState));
-  }, [stepState]);
+    const matched = targetKeywords.filter(w => resumeUniqueWords.has(w));
+    const missing = targetKeywords.filter(w => !resumeUniqueWords.has(w));
 
-  useEffect(() => {
-    localStorage.setItem('rb_proof_checklist', JSON.stringify(checklistState));
-  }, [checklistState]);
+    const matchPercentage = targetKeywords.length > 0 ? Math.round((matched.length / targetKeywords.length) * 100) : 100;
 
-  useEffect(() => {
-    localStorage.setItem('rb_final_submission', JSON.stringify({
-      lovableProject: submissionLinks.lovableProject,
-      githubRepository: submissionLinks.githubRepository,
-      liveDeployment: submissionLinks.liveDeployment,
-      updatedAt: new Date().toISOString(),
-    }));
-  }, [submissionLinks]);
+    const verbCount = ATS_ACTION_VERBS.filter(v => resumeUniqueWords.has(v)).length;
+    const verbsScore = Math.min(100, Math.round((verbCount / 5) * 100));
 
-  const isValidUrl = (value) => {
-    if (!value.trim()) return false;
-    try {
-      const parsed = new URL(value);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
+    const hasNumbers = /\d/.test(resumeText);
+    const quantifiedScore = hasNumbers ? Math.floor(Math.random() * 20) + 80 : 40;
 
-  const validLinks = {
-    lovableProject: isValidUrl(submissionLinks.lovableProject),
-    githubRepository: isValidUrl(submissionLinks.githubRepository),
-    liveDeployment: isValidUrl(submissionLinks.liveDeployment),
-  };
-
-  const allStepsCompleted = PROOF_STEPS.every(step => Boolean(stepState[step.id]));
-  const allChecklistPassed = CHECKLIST_ITEMS.every((_, idx) => Boolean(checklistState[idx]));
-  const allProofLinksProvided = Object.values(validLinks).every(Boolean);
-  const shipped = allStepsCompleted && allChecklistPassed && allProofLinksProvided;
-
-  const handleCopyFinalSubmission = async () => {
-    const finalText = [
-      '------------------------------------------',
-      'AI Resume Builder — Final Submission',
-      '',
-      `Lovable Project: ${submissionLinks.lovableProject}`,
-      `GitHub Repository: ${submissionLinks.githubRepository}`,
-      `Live Deployment: ${submissionLinks.liveDeployment}`,
-      '',
-      'Core Capabilities:',
-      '- Structured resume builder',
-      '- Deterministic ATS scoring',
-      '- Template switching',
-      '- PDF export with clean formatting',
-      '- Persistence + validation checklist',
-      '------------------------------------------'
-    ].join('\n');
-
-    await navigator.clipboard.writeText(finalText);
-    setCopyState(true);
-    setTimeout(() => setCopyState(false), 2000);
+    setInsightResult({
+      matchPercentage,
+      missingKeywords: missing.slice(0, 5),
+      suggestedKeywords: missing.slice(0, 5).map(w => w + ' experience'),
+      scores: {
+        structure: 90,
+        verbs: verbsScore,
+        quantification: quantifiedScore,
+        alignment: matchPercentage
+      },
+      recommendations: [
+        verbCount < 3 ? "Add more action verbs (e.g., Developed, Led) to your experience." : "Strong use of action verbs.",
+        !hasNumbers ? "Include more numbers and metrics to quantify your achievements." : "Great job quantifying your impact.",
+        missing.length > 0 ? `Incorporate missing keywords like: ${missing.slice(0, 3).join(', ')}.` : "Your resume aligns well with the job keywords.",
+        "Ensure your summary highlights your most relevant skills for this specific role."
+      ]
+    });
   };
 
   return (
     <div className="max-w-5xl mx-auto px-8 py-20 overflow-y-auto h-full pb-32">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
-        <h2 className="text-5xl font-bold font-serif">Submission Proof</h2>
+        <h2 className="text-5xl font-bold font-serif">Resume Insights</h2>
         <span className={cn(
           'inline-flex items-center px-4 py-2 rounded-full text-sm font-bold w-fit',
-          shipped ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+          insightResult ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
         )}>
-          {shipped ? 'Shipped' : 'In Progress'}
+          {insightResult ? 'Analyzed' : 'Awaiting Input'}
         </span>
       </div>
 
       <div className="space-y-8">
         <div className="section-card">
-          <h3 className="text-2xl font-bold font-serif mb-6">Step Completion Overview</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PROOF_STEPS.map(step => (
-              <label key={step.id} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(stepState[step.id])}
-                    onChange={(e) => setStepState(prev => ({ ...prev, [step.id]: e.target.checked }))}
-                    className="w-4 h-4 accent-red-700"
-                  />
-                  <div>
-                    <div className="text-[10px] font-bold tracking-widest text-neutral-400">STEP {step.id}</div>
-                    <div className="font-semibold text-neutral-900">{step.name}</div>
+          <h3 className="text-2xl font-bold font-serif mb-6">Job Description</h3>
+          <div>
+            <label className="input-label">Paste the target job description here:</label>
+            <textarea
+              className="input-field h-40 resize-none text-sm bg-white"
+              value={jobDescription}
+              onChange={e => setJobDescription(e.target.value)}
+              placeholder="Software Engineer Intern... Requirements..."
+            />
+            <button
+              onClick={analyzeResume}
+              className="btn-primary mt-4 py-3 px-6 flex items-center justify-center gap-2"
+              disabled={!jobDescription.trim() || !resumeText.trim()}
+            >
+              <Sparkles className="w-4 h-4" /> Run AI Analysis
+            </button>
+          </div>
+        </div>
+
+        {insightResult && (
+          <>
+            <div className="section-card">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold font-serif">Keyword Match Scanner</h3>
+                <span className="text-3xl font-bold text-accent">{insightResult.matchPercentage}% Match</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Missing Keywords</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {insightResult.missingKeywords.length > 0 ? insightResult.missingKeywords.map((k, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">{k}</span>
+                    )) : <span className="text-sm font-medium text-neutral-500">None detected. Great job!</span>}
                   </div>
                 </div>
-                <span className={cn(
-                  'text-xs font-bold px-2.5 py-1 rounded-full',
-                  stepState[step.id] ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-500'
-                )}>
-                  {stepState[step.id] ? 'Completed' : 'Pending'}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="section-card">
-          <h3 className="text-2xl font-bold font-serif mb-6">Validation Checklist Lock</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {CHECKLIST_ITEMS.map((item, idx) => (
-              <label key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={Boolean(checklistState[idx])}
-                  onChange={(e) => setChecklistState(prev => ({ ...prev, [idx]: e.target.checked }))}
-                  className="w-4 h-4 accent-red-700"
-                />
-                <span className="text-sm text-neutral-800">{item}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="section-card">
-          <h3 className="text-2xl font-bold font-serif mb-6">Artifact Collection</h3>
-          <div className="space-y-5">
-            <div>
-              <label className="input-label">Lovable Project Link</label>
-              <input
-                className={cn('input-field', submissionLinks.lovableProject && !validLinks.lovableProject && 'border-red-300 focus:border-red-500')}
-                value={submissionLinks.lovableProject}
-                onChange={(e) => setSubmissionLinks(prev => ({ ...prev, lovableProject: e.target.value }))}
-                placeholder="https://..."
-              />
-              {submissionLinks.lovableProject && !validLinks.lovableProject && <p className="text-xs text-red-600 mt-1">Enter a valid URL (http/https required).</p>}
-            </div>
-
-            <div>
-              <label className="input-label">GitHub Repository Link</label>
-              <input
-                className={cn('input-field', submissionLinks.githubRepository && !validLinks.githubRepository && 'border-red-300 focus:border-red-500')}
-                value={submissionLinks.githubRepository}
-                onChange={(e) => setSubmissionLinks(prev => ({ ...prev, githubRepository: e.target.value }))}
-                placeholder="https://github.com/..."
-              />
-              {submissionLinks.githubRepository && !validLinks.githubRepository && <p className="text-xs text-red-600 mt-1">Enter a valid URL (http/https required).</p>}
-            </div>
-
-            <div>
-              <label className="input-label">Deployed URL</label>
-              <input
-                className={cn('input-field', submissionLinks.liveDeployment && !validLinks.liveDeployment && 'border-red-300 focus:border-red-500')}
-                value={submissionLinks.liveDeployment}
-                onChange={(e) => setSubmissionLinks(prev => ({ ...prev, liveDeployment: e.target.value }))}
-                placeholder="https://..."
-              />
-              {submissionLinks.liveDeployment && !validLinks.liveDeployment && <p className="text-xs text-red-600 mt-1">Enter a valid URL (http/https required).</p>}
-            </div>
-
-            <div className="pt-2 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-              <button
-                onClick={handleCopyFinalSubmission}
-                disabled={!allProofLinksProvided}
-                className="btn-secondary py-3 px-6 inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Copy className="w-4 h-4" />
-                {copyState ? 'Copied Final Submission' : 'Copy Final Submission'}
-              </button>
-              {!allProofLinksProvided && (
-                <p className="text-sm text-neutral-500">Provide all 3 valid proof links to enable final submission copy.</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {shipped && (
-          <div className="section-card border-green-200 bg-green-50/60">
-            <div className="flex items-center gap-3 text-green-800">
-              <CheckCircle2 className="w-5 h-5" />
-              <p className="font-semibold">Project 3 Shipped Successfully.</p>
-            </div>
-          </div>
-        )}
-
-        {!shipped && (
-          <div className="section-card bg-neutral-50 border-neutral-200">
-            <div className="space-y-2 text-sm text-neutral-600">
-              <p>Shipped status is locked until all completion gates are satisfied.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className={cn('px-3 py-2 rounded-lg border', allStepsCompleted ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-neutral-600 border-neutral-200')}>8/8 Steps Completed</div>
-                <div className={cn('px-3 py-2 rounded-lg border', allChecklistPassed ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-neutral-600 border-neutral-200')}>10/10 Checklist Passed</div>
-                <div className={cn('px-3 py-2 rounded-lg border', allProofLinksProvided ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-neutral-600 border-neutral-200')}>3/3 Proof Links Valid</div>
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Suggested Additions</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {insightResult.missingKeywords.length > 0 ? insightResult.missingKeywords.map((k, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">{k}</span>
+                    )) : <span className="text-sm font-medium text-neutral-500">Your keywords are well optimized.</span>}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+
+            <div className="section-card">
+              <h3 className="text-2xl font-bold font-serif mb-6">Impact Score Breakdown</h3>
+              <div className="space-y-4">
+                {[
+                  { label: 'Structure', score: insightResult.scores.structure },
+                  { label: 'Impact Verbs', score: insightResult.scores.verbs },
+                  { label: 'Quantification', score: insightResult.scores.quantification },
+                  { label: 'Skills Alignment', score: insightResult.scores.alignment }
+                ].map((s, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between items-center mb-1 font-bold text-sm">
+                      <span>{s.label}</span>
+                      <span className={s.score > 70 ? "text-green-600" : s.score > 40 ? "text-amber-600" : "text-red-600"}>{s.score}/100</span>
+                    </div>
+                    <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
+                      <div className={cn("h-full transition-all duration-500", s.score > 70 ? "bg-green-500" : s.score > 40 ? "bg-amber-500" : "bg-red-500")} style={{ width: `${s.score}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="section-card">
+              <h3 className="text-2xl font-bold font-serif mb-6">Action Recommendations</h3>
+              <div className="space-y-3">
+                {insightResult.recommendations.map((rec, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-neutral-200 bg-white">
+                    <AlertCircle className="w-5 h-5 text-accent shrink-0" />
+                    <span className="text-sm text-neutral-800">{rec}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

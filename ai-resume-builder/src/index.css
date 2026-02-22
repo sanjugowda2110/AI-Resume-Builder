@@ -56,42 +56,22 @@
   }
 
   body {
-    background: white !important;
-    color: black !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  /* Force white background and black text on everything */
   * {
-    background-color: white !important;
-    color: black !important;
     box-shadow: none !important;
     text-shadow: none !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
 
-  /* Remove all colored accents */
-  .text-accent,
-  .text-accent *,
-  .border-accent,
-  .bg-accent {
-    color: black !important;
-    border-color: black !important;
-    background-color: transparent !important;
-  }
-
-  /* Reset links to be just black text */
-  a {
-    text-decoration: none !important;
-    color: black !important;
-  }
 
   /* Paper setup */
   @page {
     size: A4;
-    margin: 15mm 20mm;
+    margin: 0;
   }
 
   .max-w-\[210mm\] {
