@@ -55,66 +55,48 @@
     display: none !important;
   }
 
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
-
-  /* Paper setup */
   @page {
-    size: A4;
+    size: A4 portrait;
     margin: 0;
   }
 
-  .max-w-\[210mm\] {
-    width: 210mm !important;
-    max-width: none !important;
+  html,
+  body {
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+  }
+
+  #resume-preview {
+    width: 210mm;
+    height: 297mm;
+    max-height: 297mm;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: inherit !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
     box-shadow: none !important;
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    text-shadow: none !important;
   }
 
-  /* Section Spacing & Layout */
-  .space-y-8>*+* {
-    margin-top: 2rem !important;
-  }
-
-  /* Page Break Logic */
-  .break-inside-avoid {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  h2 {
-    break-after: avoid !important;
-    page-break-after: avoid !important;
-    margin-bottom: 0.75rem !important;
-  }
-
-  /* Avoid cutting off sections */
-  section,
-  .break-inside-avoid {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  /* Text Overflow Protection */
-  p,
-  span,
   h1,
   h2,
   h3 {
-    overflow-wrap: break-word !important;
-    word-wrap: break-word !important;
-    hyphens: auto;
+    margin-bottom: 6px !important;
+  }
+
+  p {
+    margin-bottom: 4px !important;
+  }
+
+  section {
+    margin-bottom: 8px !important;
   }
 }
