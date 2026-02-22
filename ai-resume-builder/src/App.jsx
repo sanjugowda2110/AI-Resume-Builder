@@ -442,6 +442,16 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                       </div>
                     </div>
                   )}
+                  {data.skills.tools.length > 0 && (
+                    <div className="space-y-3">
+                      <span className="text-[8pt] font-bold uppercase tracking-widest text-white/70">Tools</span>
+                      <div className="flex flex-wrap gap-2">
+                        {data.skills.tools.map((s, i) => (
+                          <span key={i} className="px-2 py-1 bg-white/10 rounded font-bold text-[7pt] uppercase tracking-wider">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {data.skills.soft.length > 0 && (
                     <div className="space-y-3">
                       <span className="text-[8pt] font-bold uppercase tracking-widest text-white/70">Soft Skills</span>
@@ -508,7 +518,23 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                           ))}
                         </div>
                       </div>
-                      <p className="text-neutral-800 leading-relaxed text-[9.5pt] text-justify">{proj.description}</p>
+                      <p className="text-neutral-800 leading-relaxed text-[9.5pt] text-justify mb-2">{proj.description}</p>
+                      {(proj.liveUrl || proj.githubUrl) && (
+                        <div className="flex flex-wrap gap-4 text-[8.5pt] font-medium text-neutral-600 mt-1">
+                          {proj.liveUrl && (
+                            <div className="flex items-center gap-1.5">
+                              <ExternalLink className="w-3 h-3 text-neutral-400" />
+                              {proj.liveUrl.replace(/^https?:\/\//, '')}
+                            </div>
+                          )}
+                          {proj.githubUrl && (
+                            <div className="flex items-center gap-1.5">
+                              <Github className="w-3 h-3 text-neutral-400" />
+                              {proj.githubUrl.replace(/^https?:\/\//, '')}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -542,10 +568,14 @@ const ResumeDocument = ({ data, template, themeColor }) => {
             </h1>
             <div className={cn("flex flex-wrap gap-x-3 gap-y-1 text-neutral-600 text-[9pt] font-medium", template === 'Classic' && "justify-center")}>
               {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
-              {data.personalInfo.location && (data.personalInfo.phone || data.personalInfo.email) && <span className="text-neutral-300">•</span>}
+              {data.personalInfo.location && (data.personalInfo.phone || data.personalInfo.email || data.links.linkedin || data.links.github) && <span className="text-neutral-300">•</span>}
               {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
-              {data.personalInfo.phone && data.personalInfo.email && <span className="text-neutral-300">•</span>}
+              {data.personalInfo.phone && (data.personalInfo.email || data.links.linkedin || data.links.github) && <span className="text-neutral-300">•</span>}
               {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+              {data.personalInfo.email && (data.links.linkedin || data.links.github) && <span className="text-neutral-300">•</span>}
+              {data.links.linkedin && <span>{data.links.linkedin.replace(/^https?:\/\//, '')}</span>}
+              {data.links.linkedin && data.links.github && <span className="text-neutral-300">•</span>}
+              {data.links.github && <span>{data.links.github.replace(/^https?:\/\//, '')}</span>}
             </div>
           </div>
 
@@ -596,7 +626,23 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                         ))}
                       </div>
                     </div>
-                    <p className="text-neutral-800 leading-relaxed text-[9.5pt] text-justify">{proj.description}</p>
+                    <p className="text-neutral-800 leading-relaxed text-[9.5pt] text-justify mb-2">{proj.description}</p>
+                    {(proj.liveUrl || proj.githubUrl) && (
+                      <div className="flex flex-wrap gap-4 text-[8.5pt] font-medium text-neutral-600 mt-1">
+                        {proj.liveUrl && (
+                          <div className="flex items-center gap-1.5">
+                            <ExternalLink className="w-3 h-3 text-neutral-400" />
+                            {proj.liveUrl.replace(/^https?:\/\//, '')}
+                          </div>
+                        )}
+                        {proj.githubUrl && (
+                          <div className="flex items-center gap-1.5">
+                            <Github className="w-3 h-3 text-neutral-400" />
+                            {proj.githubUrl.replace(/^https?:\/\//, '')}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -614,6 +660,16 @@ const ResumeDocument = ({ data, template, themeColor }) => {
                     <span className="font-bold text-neutral-900 shrink-0">Technical:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {data.skills.technical.map((s, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-neutral-100 text-neutral-700 rounded-md font-bold text-[7pt] uppercase tracking-wider border border-neutral-200">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {data.skills.tools.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-neutral-800 text-[9pt]">
+                    <span className="font-bold text-neutral-900 shrink-0">Tools:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.skills.tools.map((s, i) => (
                         <span key={i} className="px-2 py-0.5 bg-neutral-100 text-neutral-700 rounded-md font-bold text-[7pt] uppercase tracking-wider border border-neutral-200">{s}</span>
                       ))}
                     </div>
@@ -926,27 +982,28 @@ const Builder = () => {
 
   const updateField = (section, field, value, index = null) => {
     setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
       if (index !== null) {
-        const newList = [...prev[section]];
-        newList[index] = { ...newList[index], [field]: value };
-        return { ...prev, [section]: newList };
+        next[section][index][field] = value;
+      } else if (field !== null) {
+        next[section][field] = value;
+      } else {
+        next[section] = value;
       }
-      if (typeof prev[section] === 'object' && !Array.isArray(prev[section])) {
-        return { ...prev, [section]: { ...prev[section], [field]: value } };
-      }
-      return { ...prev, [section]: value };
+      return next;
     });
   };
 
   const addEntry = (section) => {
-    setData(prev => ({
-      ...prev,
-      [section]: [...prev[section],
-      section === 'education' ? { school: '', degree: '', year: '' } :
-        section === 'experience' ? { company: '', role: '', period: '', description: '' } :
-          { name: '', description: '', techStack: [], liveUrl: '', githubUrl: '' }
-      ]
-    }));
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      next[section].push(
+        section === 'education' ? { school: '', degree: '', year: '' } :
+          section === 'experience' ? { company: '', role: '', period: '', description: '' } :
+            { name: '', description: '', techStack: [], liveUrl: '', githubUrl: '' }
+      );
+      return next;
+    });
   };
 
   const [isSuggesting, setIsSuggesting] = useState(false);
@@ -954,39 +1011,43 @@ const Builder = () => {
   const suggestSkills = () => {
     setIsSuggesting(true);
     setTimeout(() => {
-      setData(prev => ({
-        ...prev,
-        skills: {
-          technical: Array.from(new Set([...prev.skills.technical, "TypeScript", "React", "Node.js", "PostgreSQL", "GraphQL"])),
-          soft: Array.from(new Set([...prev.skills.soft, "Team Leadership", "Problem Solving"])),
-          tools: Array.from(new Set([...prev.skills.tools, "Git", "Docker", "AWS"]))
-        }
-      }));
+      setData(prev => {
+        const next = JSON.parse(JSON.stringify(prev));
+        next.skills.technical = Array.from(new Set([...next.skills.technical, "TypeScript", "React", "Node.js", "PostgreSQL", "GraphQL"]));
+        next.skills.soft = Array.from(new Set([...next.skills.soft, "Team Leadership", "Problem Solving"]));
+        next.skills.tools = Array.from(new Set([...next.skills.tools, "Git", "Docker", "AWS"]));
+        return next;
+      });
       setIsSuggesting(false);
     }, 1000);
   };
 
   const updateSkill = (category, action, value) => {
     setData(prev => {
-      const current = prev.skills[category];
-      let updated;
+      const next = JSON.parse(JSON.stringify(prev));
       if (action === 'add') {
-        updated = [...current, value];
+        next.skills[category].push(value);
       } else {
-        updated = current.filter(s => s !== value);
+        next.skills[category] = next.skills[category].filter(s => s !== value);
       }
-      return {
-        ...prev,
-        skills: { ...prev.skills, [category]: updated }
-      };
+      return next;
     });
   };
 
   const removeEntry = (section, index) => {
-    setData(prev => ({
-      ...prev,
-      [section]: prev[section].filter((_, i) => i !== index)
-    }));
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      next[section] = next[section].filter((_, i) => i !== index);
+      return next;
+    });
+  };
+
+  const clearResume = () => {
+    if (JSON.stringify(data) !== JSON.stringify(DEFAULT_RESUME_DATA)) {
+      if (window.confirm("Are you sure you want to clear your entire resume? This action cannot be undone.")) {
+        setData(DEFAULT_RESUME_DATA);
+      }
+    }
   };
 
   const handlePrint = (e) => {
@@ -1206,6 +1267,13 @@ const Builder = () => {
                 </div>
               </div>
             </Accordion>
+
+            <button
+              onClick={clearResume}
+              className="w-full py-4 mt-8 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-100 transition-colors uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Clear Resume
+            </button>
           </div>
         </div>
       </div >
