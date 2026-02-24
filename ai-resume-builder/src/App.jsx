@@ -70,7 +70,7 @@ const ATS_ACTION_VERBS = [
 const DEFAULT_RESUME_DATA = {
   personalInfo: { name: '', email: '', phone: '', location: '' },
   summary: '',
-  education: [{ school: '', degree: '', year: '' }],
+  education: [{ level: '', institution: '', qualification: '', specialization: '', boardOrUniversity: '', startYear: '', endYear: '', gradeType: '', gradeValue: '', location: '', school: '', degree: '', year: '' }],
   experience: [{ company: '', role: '', period: '', description: '' }],
   projects: [{ name: '', description: '', techStack: [], liveUrl: '', githubUrl: '' }],
   skills: {
@@ -112,7 +112,7 @@ const normalizeResumeData = (raw) => {
     personalInfo: { ...DEFAULT_RESUME_DATA.personalInfo, ...(parsed.personalInfo || {}) },
     skills: { ...DEFAULT_RESUME_DATA.skills, ...(parsed.skills || {}) },
     links: { ...DEFAULT_RESUME_DATA.links, ...(parsed.links || {}) },
-    education: Array.isArray(parsed.education) && parsed.education.length > 0 ? parsed.education : DEFAULT_RESUME_DATA.education,
+    education: Array.isArray(parsed.education) && parsed.education.length > 0 ? parsed.education.map(e => ({ ...DEFAULT_RESUME_DATA.education[0], ...e })) : DEFAULT_RESUME_DATA.education,
     experience: Array.isArray(parsed.experience) && parsed.experience.length > 0 ? parsed.experience : DEFAULT_RESUME_DATA.experience,
     projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 ? parsed.projects : DEFAULT_RESUME_DATA.projects,
   };
@@ -207,7 +207,7 @@ const calculateATSScore = (inputData) => {
   if (hasExperienceWithBullets) score += 15;
   else suggestions.push('Add experience with bullet-style achievements (+15 points)');
 
-  const hasEducation = data.education.some((edu) => edu.school.trim());
+  const hasEducation = data.education.some((edu) => (edu.school || edu.institution || '').trim());
   if (hasEducation) score += 10;
   else suggestions.push('Add at least one education entry (+10 points)');
 
@@ -382,6 +382,36 @@ const ColorPicker = ({ activeColor, onColorSelect }) => (
 
 // Main Resume Document Component
 const ResumeDocument = ({ data, template, themeColor }) => {
+  const renderEducationDetails = (edu) => {
+    const level = edu.level || '';
+    const qual = edu.qualification || edu.degree || '';
+    const spec = edu.specialization || '';
+    const board = edu.boardOrUniversity || '';
+
+    let title = qual;
+    let subtitle = '';
+
+    if (level === 'Secondary School Education') {
+      title = qual || 'Secondary School Education';
+      if (board) subtitle = board;
+    } else if (level === 'Higher Secondary Education') {
+      title = qual || 'Higher Secondary Education';
+      if (spec) subtitle = spec;
+    } else if (level === 'Diploma') {
+      title = qual || 'Diploma';
+      if (spec) subtitle = spec;
+    } else if (level === 'Undergraduate' || level === 'Postgraduate') {
+      title = qual;
+      if (qual && spec) title = `${qual} in ${spec}`;
+      else if (spec) title = spec;
+    } else {
+      title = qual;
+      if (spec) subtitle = spec;
+    }
+
+    return { title, subtitle };
+  };
+
   const renderDescription = (text) => {
     if (!text) return null;
     const lines = text.split('\n');
@@ -541,16 +571,31 @@ const ResumeDocument = ({ data, template, themeColor }) => {
               </div>
             )}
 
-            {data.education.some(e => e.school.trim()) && (
+            {data.education.some(e => (e.school || e.institution || '').trim()) && (
               <div>
                 <h2 className="text-[11pt] font-bold uppercase tracking-wider mb-4 pb-1 border-b-2" style={{ borderBottomColor: themeColor }}>Education</h2>
                 <div className="space-y-4">
-                  {data.education.filter(e => e.school.trim()).map((edu, i) => (
-                    <div key={i} className="flex justify-between items-start">
-                      <div><h3 className="font-bold text-[10.5pt]">{edu.school}</h3><div className="text-neutral-700 text-[9.5pt] font-medium">{edu.degree}</div></div>
-                      <span className="text-[9pt] font-bold text-neutral-500 italic shrink-0">{edu.year}</span>
-                    </div>
-                  ))}
+                  {data.education.filter(e => (e.school || e.institution || '').trim()).map((edu, i) => {
+                    const { title, subtitle } = renderEducationDetails(edu);
+                    const inst = edu.institution || edu.school;
+                    const years = edu.year || (edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : edu.startYear || edu.endYear);
+                    return (
+                      <div key={i} className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-[10.5pt]">{title || inst}</h3>
+                          <div className="text-neutral-800 text-[10pt] font-bold">{title ? inst : subtitle}</div>
+                          {title && subtitle && <div className="text-neutral-700 text-[9.5pt] font-medium">{subtitle}</div>}
+                          {edu.boardOrUniversity && edu.level !== 'Secondary School Education' && <div className="text-neutral-700 text-[9pt]">{edu.boardOrUniversity}</div>}
+                          {edu.gradeType && edu.gradeValue && (
+                            <div className="text-neutral-600 text-[8.5pt] mt-0.5">
+                              {edu.gradeType === "CGPA" ? `CGPA: ${edu.gradeValue}` : `Percentage: ${edu.gradeValue}`}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[9pt] font-bold text-neutral-500 italic shrink-0">{years}</span>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -689,18 +734,33 @@ const ResumeDocument = ({ data, template, themeColor }) => {
             </div>
           )}
 
-          {data.education.some(e => e.school.trim()) && (
+          {data.education.some(e => (e.school || e.institution || '').trim()) && (
             <div className="break-inside-avoid">
               <h2 className={cn("text-[11pt] font-bold uppercase tracking-wider pb-1 mb-4", template === 'Classic' ? "border-b border-neutral-300" : "")} style={{ color: template === 'Minimal' ? themeColor : 'inherit' }}>
                 Education
               </h2>
               <div className="space-y-4">
-                {data.education.filter(e => e.school.trim()).map((edu, i) => (
-                  <div key={i} className="flex justify-between items-start break-inside-avoid">
-                    <div><h3 className="font-bold text-[10.5pt]">{edu.school}</h3><div className="text-neutral-700 text-[9.5pt] font-medium">{edu.degree}</div></div>
-                    <span className="text-[9pt] font-bold text-neutral-500 italic shrink-0">{edu.year}</span>
-                  </div>
-                ))}
+                {data.education.filter(e => (e.school || e.institution || '').trim()).map((edu, i) => {
+                  const { title, subtitle } = renderEducationDetails(edu);
+                  const inst = edu.institution || edu.school;
+                  const years = edu.year || (edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : edu.startYear || edu.endYear);
+                  return (
+                    <div key={i} className="flex justify-between items-start break-inside-avoid">
+                      <div>
+                        <h3 className="font-bold text-[10.5pt]">{title || inst}</h3>
+                        <div className="text-neutral-800 text-[10pt] font-bold" style={{ color: template === 'Classic' ? themeColor : 'inherit' }}>{title ? inst : subtitle}</div>
+                        {title && subtitle && <div className="text-neutral-700 text-[9.5pt] font-medium">{subtitle}</div>}
+                        {edu.boardOrUniversity && edu.level !== 'Secondary School Education' && <div className="text-neutral-700 text-[9pt]">{edu.boardOrUniversity}</div>}
+                        {edu.gradeType && edu.gradeValue && (
+                          <div className="text-neutral-600 text-[8.5pt] mt-0.5">
+                            {edu.gradeType === "CGPA" ? `CGPA: ${edu.gradeValue}` : `Percentage: ${edu.gradeValue}`}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[9pt] font-bold text-neutral-500 italic shrink-0">{years}</span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -965,7 +1025,7 @@ const Builder = () => {
     setData({
       personalInfo: { name: 'Alex Johnson', email: 'alex.j@example.com', phone: '+91 98765 43210', location: 'Bengaluru, India' },
       summary: 'Passionate Full Stack Developer with 3+ years of experience in building scalable web applications. Expert in React, Node.js, and cloud architecture. Successfully optimized database queries resulting in a 40% reduction in latency.',
-      education: [{ school: 'IIT Bombay', degree: 'B.Tech in Computer Science', year: '2021' }],
+      education: [{ level: 'Undergraduate', institution: 'IIT Bombay', qualification: 'B.Tech', specialization: 'Computer Science', year: '2021', gradeType: 'CGPA', gradeValue: '8.5 / 10' }],
       experience: [{ company: 'TechCorp Solutions', role: 'Senior Developer', period: '2021 - Present', description: 'Led a team of 5 to develop a cloud-native ERP system. Improved deployment speed by 25% using Docker and CI/CD pipelines.' }],
       projects: [
         { name: 'AI Resume Builder', description: 'Real-time resume generator with ATS optimization scoring. Reached 100+ stars on GitHub.', techStack: ['React', 'Vite', 'Tailwind CSS', 'Lucide React'], liveUrl: 'https://resume-ai.demo', githubUrl: 'https://github.com/alex/rb' },
@@ -998,7 +1058,7 @@ const Builder = () => {
     setData(prev => {
       const next = JSON.parse(JSON.stringify(prev));
       next[section].push(
-        section === 'education' ? { school: '', degree: '', year: '' } :
+        section === 'education' ? { level: '', institution: '', qualification: '', specialization: '', boardOrUniversity: '', startYear: '', endYear: '', gradeType: '', gradeValue: '', location: '', school: '', degree: '', year: '' } :
           section === 'experience' ? { company: '', role: '', period: '', description: '' } :
             { name: '', description: '', techStack: [], liveUrl: '', githubUrl: '' }
       );
@@ -1174,12 +1234,82 @@ const Builder = () => {
               <div className="space-y-6">
                 {data.education.map((edu, idx) => (
                   <div key={idx} className="p-5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-4 relative group">
-                    <button onClick={() => removeEntry('education', idx)} className="absolute top-4 right-4 text-neutral-400 hover:text-accent transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    <input className="input-field bg-white text-sm" value={edu.school} onChange={e => updateField('education', 'school', e.target.value, idx)} placeholder="University" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input className="input-field bg-white text-sm" value={edu.degree} onChange={e => updateField('education', 'degree', e.target.value, idx)} placeholder="Degree" />
-                      <input className="input-field bg-white text-sm" value={edu.year} onChange={e => updateField('education', 'year', e.target.value, idx)} placeholder="Year" />
+                    <button onClick={() => removeEntry('education', idx)} className="absolute top-4 right-4 z-10 text-neutral-400 hover:text-accent transition-colors"><Trash2 className="w-4 h-4" /></button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      <div className="form-field">
+                        <label className="input-label">Education Level</label>
+                        <select
+                          className="input-field bg-white text-sm"
+                          value={edu.level || ''}
+                          onChange={e => updateField('education', 'level', e.target.value, idx)}
+                        >
+                          <option value="">Select Level</option>
+                          <option value="Secondary School Education">Secondary School Education</option>
+                          <option value="Higher Secondary Education">Higher Secondary Education</option>
+                          <option value="Diploma">Diploma</option>
+                          <option value="Undergraduate">Undergraduate</option>
+                          <option value="Postgraduate">Postgraduate</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label className="input-label">Institution</label>
+                        <input className="input-field bg-white text-sm" value={edu.institution !== undefined ? edu.institution : edu.school || ''} onChange={e => updateField('education', 'institution', e.target.value, idx)} placeholder="Institution Name" />
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-field">
+                        <label className="input-label">Qualification / Degree</label>
+                        <input className="input-field bg-white text-sm" value={edu.qualification !== undefined ? edu.qualification : edu.degree || ''} onChange={e => updateField('education', 'qualification', e.target.value, idx)} placeholder="e.g. B.Tech, XII, 10th" />
+                      </div>
+                      <div className="form-field">
+                        <label className="input-label">Specialization / Stream</label>
+                        <input className="input-field bg-white text-sm" value={edu.specialization || ''} onChange={e => updateField('education', 'specialization', e.target.value, idx)} placeholder="e.g. Computer Science, Science" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-field">
+                        <label className="input-label">Board / University</label>
+                        <input className="input-field bg-white text-sm" value={edu.boardOrUniversity || ''} onChange={e => updateField('education', 'boardOrUniversity', e.target.value, idx)} placeholder="e.g. CBSE, State Board" />
+                      </div>
+                      <div className="form-field">
+                        <label className="input-label">Years</label>
+                        <input className="input-field bg-white text-sm" value={edu.year !== undefined ? edu.year : ''} onChange={e => updateField('education', 'year', e.target.value, idx)} placeholder="e.g. 2018 - 2022" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-field">
+                        <label className="input-label">Grade Format</label>
+                        <select
+                          className="input-field bg-white text-sm"
+                          value={edu.gradeType || ''}
+                          onChange={e => {
+                            updateField('education', 'gradeType', e.target.value, idx);
+                            if (!e.target.value) updateField('education', 'gradeValue', '', idx);
+                          }}
+                        >
+                          <option value="">None</option>
+                          <option value="CGPA">CGPA</option>
+                          <option value="Percentage">Percentage</option>
+                        </select>
+                      </div>
+                      {edu.gradeType && (
+                        <div className="form-field">
+                          <label className="input-label">Grade</label>
+                          <input
+                            className="input-field bg-white text-sm"
+                            value={edu.gradeValue || ''}
+                            onChange={e => updateField('education', 'gradeValue', e.target.value, idx)}
+                            placeholder={edu.gradeType === 'CGPA' ? 'e.g., 8.6 / 10' : 'e.g., 87%'}
+                          />
+                        </div>
+                      )}
+                    </div>
+
                   </div>
                 ))}
                 <button onClick={() => addEntry('education')} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-bold text-xs uppercase tracking-widest hover:border-accent hover:text-accent transition-all flex items-center justify-center gap-2">
@@ -1442,11 +1572,14 @@ const PreviewView = () => {
     }
 
     // 4. Education
-    const education = data.education.filter(e => e.school.trim());
+    const education = data.education.filter(e => (e.school || e.institution || '').trim());
     if (education.length > 0) {
       sections.push('\nEDUCATION');
       education.forEach(e => {
-        sections.push(`${e.degree}, ${e.school} (${e.year})`);
+        const inst = e.institution || e.school || '';
+        const qual = e.qualification || e.degree || '';
+        const years = e.year || (e.startYear && e.endYear ? `${e.startYear} - ${e.endYear}` : e.startYear || e.endYear || '');
+        sections.push(`${qual}, ${inst} (${years})`);
       });
     }
 
@@ -1576,7 +1709,7 @@ const Proof = () => {
         return [
           data.summary,
           data.experience.map(e => `${e.role} ${e.description}`).join(' '),
-          data.education.map(e => `${e.degree} ${e.school}`).join(' '),
+          data.education.map(e => `${e.qualification || e.degree || ''} ${e.institution || e.school || ''}`).join(' '),
           data.projects.map(p => `${p.name} ${p.description} ${p.techStack.join(' ')}`).join(' '),
           data.skills.technical.join(' '),
           data.skills.soft.join(' '),
